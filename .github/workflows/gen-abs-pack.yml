@@ -1,0 +1,34 @@
+name: Generate ABS Pack
+on:
+    workflow_dispatch:
+
+jobs:
+    gen-pack:
+        runs-on: ubuntu-latest
+        steps:
+        -   name: Checkout Git Repo
+            uses: actions/checkout@v3
+        -   name: Set up Python
+            uses: actions/setup-python@v4
+            with:
+                python-version: '3.11'
+        -   name: Clone Input Repo
+            uses: actions/checkout@v3
+            with:
+                repository: ${{ secrets.MODIFIED_REPO }}
+                ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+                path: input-repo
+        -   name: Run genpack
+            run: python genpack.py input-repo/meta.json Output
+        -   name: Create zipball
+            if: env.fail == 'false'
+            run: |
+                cd Output
+                zip -r ../update_120.zip *
+                cd ..
+        -   name: Upload zipball
+            if: env.fail == 'false'
+            uses: actions/upload-artifact@v3
+            with:
+                name: update_120
+                path: update_120.zip

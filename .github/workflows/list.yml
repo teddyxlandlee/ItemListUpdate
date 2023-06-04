@@ -1,0 +1,48 @@
+name: List Difference
+on:
+    workflow_dispatch:
+
+jobs:
+    list-difference:
+        runs-on: ubuntu-latest
+        steps:
+        -   name: Checkout Git Repo
+            uses: actions/checkout@v3
+            
+        -   name: Set up Java
+            uses: actions/setup-java@v3
+            with:
+                java-version: 17
+                distribution: temurin
+        -   name: Set up Python
+            uses: actions/setup-python@v4
+            with:
+                python-version: '3.11'
+        -   name: Clone Result Repo
+            uses: actions/checkout@v3
+            with:
+                repository: ${{ secrets.RESULT_REPO }}
+                ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+                path: output-repo
+        
+        -   name: Run list_difference
+            run: python list_difference.py ${{ secrets.VERSION_FROM }} ${{ secrets.VERSION_TO }}
+        
+        -   name: Commit Result
+            if: env.fail == 'false'
+            run: |
+                cd output-repo
+                git config --local user.email "github-actions[bot]@users.noreply.github.com"
+                git config --local user.name "github-actions[bot]"
+                git add .
+                git commit -m ${{ env.version }} -a
+                cd ..
+        
+        -   name: Push Result
+            if: env.fail == 'false'
+            uses: ad-m/github-push-action@master
+            with:
+                directory: output-repo
+                ssh: true
+                repository: ${{ secrets.RESULT_REPO }}
+            
